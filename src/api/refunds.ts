@@ -2,6 +2,7 @@ import { apiClient } from './client'
 import type {
   RefundListResponse,
   RefundDetailResponse,
+  EnrichedRefundDetailResponse,
   RefundActionResponse,
   ProcessRefundRequest,
   PendingRefundStatus,
@@ -39,6 +40,14 @@ export const refundsApi = {
    */
   async getRefundById(refundId: string): Promise<RefundDetailResponse> {
     return apiClient.get<RefundDetailResponse>(`/api/v1/admin/refunds/${refundId}`)
+  },
+
+  /**
+   * Get enriched refund details (refund + shop + order + customer)
+   * Single API call that returns all related data
+   */
+  async getEnrichedRefundDetails(refundId: string): Promise<EnrichedRefundDetailResponse> {
+    return apiClient.get<EnrichedRefundDetailResponse>(`/api/v1/admin/refunds/${refundId}/details`)
   },
 
   /**

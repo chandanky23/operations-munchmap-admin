@@ -61,6 +61,16 @@ export interface RefundDetailResponse {
   data: PendingRefund
 }
 
+export interface EnrichedRefundDetailResponse {
+  success: boolean
+  data: {
+    refund: PendingRefund
+    shop: any // Shop details from backend
+    order: any // Order details from backend
+    customer: any | null // Customer details from backend (nullable)
+  }
+}
+
 export interface ProcessRefundRequest {
   admin_notes?: string
   platform_commission_percent?: number

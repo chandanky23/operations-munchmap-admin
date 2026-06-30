@@ -16,12 +16,18 @@ export const RefundDetail = () => {
   const [adminNotes, setAdminNotes] = useState('')
   const [recoveryNotes, setRecoveryNotes] = useState('')
 
+  // Fetch enriched refund details (refund + shop + order + customer) in one API call
   const { data, isLoading, error } = useQuery({
-    queryKey: ['refund', refundId],
-    queryFn: () => refundsApi.getRefundById(refundId!),
+    queryKey: ['enriched-refund', refundId],
+    queryFn: () => refundsApi.getEnrichedRefundDetails(refundId!),
     enabled: !!refundId,
     refetchInterval: 60000, // Poll every 1 minute (60000ms)
   })
+
+  const refund = data?.data?.refund
+  const shop = data?.data?.shop
+  const order = data?.data?.order
+  const customer = data?.data?.customer
 
   const processMutation = useMutation({
     mutationFn: () =>
@@ -53,8 +59,6 @@ export const RefundDetail = () => {
       setRecoveryNotes('')
     },
   })
-
-  const refund = data?.data
 
   if (isLoading) {
     return (
@@ -122,9 +126,17 @@ export const RefundDetail = () => {
             <div className="p-6">
               <div className="grid sm:grid-cols-2 gap-4">
                 <InfoItem label="Refund ID" value={refund.id} mono />
-                <InfoItem label="Order ID" value={refund.order_id} mono />
-                <InfoItem label="Shop ID" value={refund.shop_id} mono />
-                <InfoItem label="Customer ID" value={refund.customer_id || 'N/A'} mono={!!refund.customer_id} />
+                <InfoItem label="Order Number" value={order?.number || refund.order_id} mono={!order?.number} />
+                <InfoItem
+                  label="Restaurant"
+                  value={shop?.name ? `${shop.name}${shop.branch ? ` (${shop.branch})` : ''}` : refund.shop_id}
+                  mono={!shop?.name}
+                />
+                <InfoItem
+                  label="Customer"
+                  value={customer ? `${customer.first_name} ${customer.last_name} (${customer.email})` : refund.customer_id || 'N/A'}
+                  mono={!customer && !!refund.customer_id}
+                />
                 <InfoItem
                   label="Status"
                   value={refund.status}
@@ -154,6 +166,33 @@ export const RefundDetail = () => {
                   })}
                 />
               </div>
+
+              {/* Order Details */}
+              {order && order.items && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-3">Order Details</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Amount:</span>
+                      <span className="font-medium text-gray-900">
+                        {order.currency} {parseFloat(order.total_amount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Items:</span>
+                      <span className="font-medium text-gray-900">
+                        {order.items.reduce((sum: number, item: any) => sum + item.quantity, 0)} item(s)
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Order Type:</span>
+                      <span className="font-medium text-gray-900">
+                        {order.order_placed_by_type === 'GROUP' ? 'Group Order' : 'Solo Order'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -193,17 +232,56 @@ export const RefundDetail = () => {
 
           {/* Payment Intents */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Payment Intents</h3>
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center justify-between">
+              <span>Payment Intents</span>
+              <span className="text-xs text-gray-500 font-normal">
+                {refund.payment_intent_ids.length} {refund.payment_intent_ids.length === 1 ? 'payment' : 'payments'}
+              </span>
+            </h3>
             <div className="space-y-2">
-              {refund.payment_intent_ids.map((id, index) => (
-                <div key={id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-xs font-medium">
-                    {index + 1}
-                  </span>
-                  <p className="text-sm text-gray-700 font-mono break-all">{id}</p>
+              {refund.payment_intent_ids.length === 1 && customer ? (
+                // Solo order - show customer details
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-medium">
+                      1
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {customer.first_name} {customer.last_name}
+                      </p>
+                      <p className="text-sm text-gray-600">{customer.email}</p>
+                      <p className="text-sm text-emerald-700 font-medium mt-1">
+                        {refund.currency} {parseFloat(refund.total_amount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono mt-2 break-all">{refund.payment_intent_ids[0]}</p>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                // Group order or multiple payments - show list with technical IDs
+                refund.payment_intent_ids.map((id, index) => (
+                  <div key={id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-xs font-medium">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-700 font-mono break-all">{id}</p>
+                      {order?.order_placed_by_type === 'GROUP' && (
+                        <p className="text-xs text-gray-500 mt-1">Group member payment</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
+            {refund.payment_intent_ids.length > 1 && order?.order_placed_by_type === 'GROUP' && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 italic">
+                  This is a group order with {refund.payment_intent_ids.length} members. Each payment intent represents one member's contribution.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Stripe Refund IDs */}
