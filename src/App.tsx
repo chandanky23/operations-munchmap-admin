@@ -6,6 +6,7 @@ import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { Refunds } from './pages/Refunds'
 import { RefundDetail } from './pages/RefundDetail'
+import { RestaurantApprovals } from './pages/RestaurantApprovals'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,12 +34,13 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Navigate to="/refunds" replace />} />
+              <Route index element={<Navigate to="/restaurants" replace />} />
+              <Route path="restaurants" element={<RestaurantApprovals />} />
               <Route path="refunds" element={<Refunds />} />
               <Route path="refunds/:refundId" element={<RefundDetail />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/refunds" replace />} />
+            <Route path="*" element={<Navigate to="/restaurants" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

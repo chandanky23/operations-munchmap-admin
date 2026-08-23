@@ -15,6 +15,7 @@ export const RefundDetail = () => {
   const [showCommissionRecoveryModal, setShowCommissionRecoveryModal] = useState(false)
   const [adminNotes, setAdminNotes] = useState('')
   const [recoveryNotes, setRecoveryNotes] = useState('')
+  const [waivePenalty, setWaivePenalty] = useState(false)
 
   // Fetch enriched refund details (refund + shop + order + customer) in one API call
   const { data, isLoading, error } = useQuery({
@@ -31,12 +32,16 @@ export const RefundDetail = () => {
 
   const processMutation = useMutation({
     mutationFn: () =>
-      refundsApi.processRefund(refundId!, { admin_notes: adminNotes || undefined }),
+      refundsApi.processRefund(refundId!, {
+        admin_notes: adminNotes || undefined,
+        waive_penalty: waivePenalty
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refund', refundId] })
       queryClient.invalidateQueries({ queryKey: ['refunds'] })
       setShowProcessModal(false)
       setAdminNotes('')
+      setWaivePenalty(false)
     },
   })
 
@@ -475,6 +480,32 @@ export const RefundDetail = () => {
                 rows={3}
                 placeholder="Add any notes about this refund processing..."
               />
+            </div>
+
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="waivePenalty"
+                  checked={waivePenalty}
+                  onChange={(e) => setWaivePenalty(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <div className="flex-1">
+                  <label htmlFor="waivePenalty" className="text-sm font-semibold text-blue-900 cursor-pointer">
+                    Waive Stripe Processing Fee Penalty (Pilot Flexibility)
+                  </label>
+                  <p className="text-xs text-blue-800 mt-1">
+                    By checking this box, MunchMap will absorb the Stripe processing fee (~€1.32) instead of charging it to the restaurant.
+                    Use this for: first-time cancellations, technical issues, force majeure, or other legitimate pilot-phase reasons.
+                  </p>
+                  {waivePenalty && (
+                    <p className="text-xs text-blue-700 mt-2 font-medium">
+                      ✓ Penalty waived. Restaurant will not be charged the non-refundable Stripe fee. Platform absorbs the cost.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">

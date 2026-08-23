@@ -1,6 +1,6 @@
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Shield, LogOut, RefreshCw } from 'lucide-react'
+import { Shield, LogOut, RefreshCw, Store } from 'lucide-react'
 
 export const Layout = () => {
   const { adminUser, logout } = useAuth()
@@ -23,6 +23,10 @@ export const Layout = () => {
               </div>
 
               <div className="ml-10 flex items-baseline space-x-4">
+                <NavLink to="/restaurants" active={isActive('/restaurants')}>
+                  <Store className="w-4 h-4" />
+                  Restaurants
+                </NavLink>
                 <NavLink to="/refunds" active={isActive('/refunds')}>
                   <RefreshCw className="w-4 h-4" />
                   Refunds

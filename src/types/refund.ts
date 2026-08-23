@@ -74,6 +74,7 @@ export interface EnrichedRefundDetailResponse {
 export interface ProcessRefundRequest {
   admin_notes?: string
   platform_commission_percent?: number
+  waive_penalty?: boolean  // If true, platform absorbs Stripe fee instead of restaurant
 }
 
 export interface RefundActionResponse {
