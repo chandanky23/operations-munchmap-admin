@@ -64,6 +64,8 @@ const verificationStatusConfig = {
 
 export const RestaurantApprovals = () => {
   const [verificationFilter, setVerificationFilter] = useState<Verification | 'all'>('all')
+  const [stripeConnectedFilter, setStripeConnectedFilter] = useState(false)
+  const [hasMenuFilter, setHasMenuFilter] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize] = useState(20)
   const queryClient = useQueryClient()
@@ -76,12 +78,14 @@ export const RestaurantApprovals = () => {
 
   // Fetch filtered shops for the list
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['shops', verificationFilter, page, pageSize],
+    queryKey: ['shops', verificationFilter, stripeConnectedFilter, hasMenuFilter, page, pageSize],
     queryFn: () =>
       shopsApi.getShops({
         page,
         page_size: pageSize,
         ...(verificationFilter !== 'all' ? { verification_status: verificationFilter } : {}),
+        ...(stripeConnectedFilter ? { stripe_connected: true } : {}),
+        ...(hasMenuFilter ? { has_menu: true } : {}),
       }),
   })
 
@@ -260,26 +264,58 @@ export const RestaurantApprovals = () => {
 
       {/* Filter Bar */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2 text-gray-700 font-medium">
-            <Store className="w-5 h-5 text-gray-500" />
-            Filter by Status:
+        <div className="flex flex-col gap-4">
+          {/* Status Filter */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-gray-700 font-medium">
+              <Store className="w-5 h-5 text-gray-500" />
+              Filter by Status:
+            </div>
+            <select
+              value={verificationFilter}
+              onChange={(e) => {
+                setVerificationFilter(e.target.value as Verification | 'all')
+                setPage(0) // Reset to first page when filter changes
+              }}
+              className="w-full sm:w-auto min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-colors"
+            >
+              <option value="all">All Statuses</option>
+              {Object.entries(verificationStatusConfig).map(([value, config]) => (
+                <option key={value} value={value}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            value={verificationFilter}
-            onChange={(e) => {
-              setVerificationFilter(e.target.value as Verification | 'all')
-              setPage(0) // Reset to first page when filter changes
-            }}
-            className="w-full sm:w-auto min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white transition-colors"
-          >
-            <option value="all">All Statuses</option>
-            {Object.entries(verificationStatusConfig).map(([value, config]) => (
-              <option key={value} value={value}>
-                {config.label}
-              </option>
-            ))}
-          </select>
+
+          {/* Additional Filters */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-3 border-t border-gray-200">
+            <div className="text-gray-700 font-medium text-sm">Additional Filters:</div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={stripeConnectedFilter}
+                onChange={(e) => {
+                  setStripeConnectedFilter(e.target.checked)
+                  setPage(0)
+                }}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              />
+              <span className="text-sm text-gray-700">Connected to Stripe</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasMenuFilter}
+                onChange={(e) => {
+                  setHasMenuFilter(e.target.checked)
+                  setPage(0)
+                }}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              />
+              <span className="text-sm text-gray-700">Menu Created</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -398,6 +434,40 @@ export const RestaurantApprovals = () => {
                               </p>
                             </div>
                           </div>
+
+                          {/* Stripe Connect Status (shown when filter is active) */}
+                          {shop.stripe_connect && (
+                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-3 mb-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                                <span className="text-sm font-semibold text-purple-900">Stripe Connected</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <span className="text-gray-600">Account: </span>
+                                  <span className="font-mono text-gray-900">{shop.stripe_connect.stripe_account_id.slice(0, 20)}...</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Status: </span>
+                                  <span className={`font-medium ${shop.stripe_connect.status === 'ACTIVE' ? 'text-green-700' : 'text-amber-700'}`}>
+                                    {shop.stripe_connect.status}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Charges: </span>
+                                  <span className={`font-medium ${shop.stripe_connect.charges_enabled ? 'text-green-700' : 'text-red-700'}`}>
+                                    {shop.stripe_connect.charges_enabled ? '✓ Enabled' : '✗ Disabled'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Payouts: </span>
+                                  <span className={`font-medium ${shop.stripe_connect.payouts_enabled ? 'text-green-700' : 'text-red-700'}`}>
+                                    {shop.stripe_connect.payouts_enabled ? '✓ Enabled' : '✗ Disabled'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Action Buttons */}
                           <div className={`flex gap-2 mt-4 pt-4 ${isPending ? 'border-t border-amber-200' : 'border-t border-gray-200'}`}>

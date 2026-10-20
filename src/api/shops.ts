@@ -35,6 +35,14 @@ export const shopsApi = {
       queryParams.append('show_new_restaurant', params.show_new_restaurant.toString())
     }
 
+    if (params?.stripe_connected !== undefined) {
+      queryParams.append('stripe_connected', params.stripe_connected.toString())
+    }
+
+    if (params?.has_menu !== undefined) {
+      queryParams.append('has_menu', params.has_menu.toString())
+    }
+
     const query = queryParams.toString()
     const endpoint = `/api/v1/admin/shops${query ? `?${query}` : ''}`
 

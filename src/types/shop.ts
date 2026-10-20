@@ -60,6 +60,13 @@ export type Shop = {
   accepts_takeaway?: boolean
   delivery_radius_km?: number
   menu_ready?: boolean
+  stripe_connect?: {
+    stripe_account_id: string
+    status: string
+    charges_enabled: boolean
+    payouts_enabled: boolean
+    details_submitted: boolean
+  }
   created_at: string
   updated_at: string
 }
@@ -70,6 +77,8 @@ export interface GetShopsParams {
   verification_status?: Verification | Verification[]
   status?: ShopStatus | ShopStatus[]
   show_new_restaurant?: boolean
+  stripe_connected?: boolean
+  has_menu?: boolean
 }
 
 export interface ShopListResponse {
